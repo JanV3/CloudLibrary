@@ -235,6 +235,7 @@ namespace cl {
             stream << "  " << point;
         });
         stream << "}\n";
+        return stream;
     }
 
 }

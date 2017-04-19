@@ -129,7 +129,7 @@ namespace cl {
         {
 
             glm::mat4 model;
-            //model = glm::rotate(model, -55.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::scale(model, glm::vec3(0.001f, 0.001f, 0.001f));
 
             glm::mat4 view;
             // Note that we're translating the scene in the reverse direction of where we want to move
@@ -259,19 +259,19 @@ namespace cl {
 
         bool processKeys(){
             if(glfwGetKey(_window.get(), GLFW_KEY_W)){
-                _camera.ProcessKeyboard(CameraMovement::Forward, 0.0015);
+                _camera.ProcessKeyboard(CameraMovement::Forward, 0.001);
             }
 
             if(glfwGetKey(_window.get(), GLFW_KEY_S)) {
-                _camera.ProcessKeyboard(CameraMovement::Backward, 0.0015);
+                _camera.ProcessKeyboard(CameraMovement::Backward, 0.001);
             }
 
             if(glfwGetKey(_window.get(), GLFW_KEY_A)){
-                _camera.ProcessKeyboard(CameraMovement::Left, 0.0015);
+                _camera.ProcessKeyboard(CameraMovement::Left, 0.001);
             }
 
             if(glfwGetKey(_window.get(), GLFW_KEY_D)){
-                _camera.ProcessKeyboard(CameraMovement::Right, 0.0015);
+                _camera.ProcessKeyboard(CameraMovement::Right, 0.001);
             }
 
             if(glfwGetKey(_window.get(), GLFW_KEY_ESCAPE)){
