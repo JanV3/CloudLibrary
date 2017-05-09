@@ -15,36 +15,41 @@ namespace fs=boost::filesystem;
 using namespace cl;
 
 int main(int argc, char** argv){
-    if(argc != 2){
-        std::cout << "Program takes one argument: path to directory or pcd file" << std::endl;
-        return -1;
-    }
+    //if(argc != 2){
+        //std::cout << "Program takes one argument: path to directory or pcd file" << std::endl;
+        //return -1;
+    //}
+    //
+
+    std::mt19937_64 rng;
+    std::uniform_real_distribution<float> uni_real(-10.0f, 10.0f);
 
     auto pc = std::make_shared<PointCloud>();
-    auto denom = 0.0000000001f;
-    for(auto i = 0; i < 100000; ++i){
-        auto r = static_cast<float>(std::rand()) * denom;
-        auto s = static_cast<float>(std::rand()) * denom;
-        auto t = static_cast<float>(std::rand()) * denom;
+    for(auto i = 0; i < 1000; ++i){
+        auto r = uni_real(rng);
+        auto s = uni_real(rng);
+        auto t = uni_real(rng);
         pc->push_back({r, s, t});
     }
 
-    auto pc2 = std::make_shared<PointCloud>();
+    std::cout << *pc << std::endl;
 
-    fs::path p(argv[1]);
+    //auto pc2 = std::make_shared<PointCloud>();
 
-    if(fs::is_directory(p)){
-        fs::directory_iterator endIter;
-        for(auto d = fs::directory_iterator(p); d != endIter; ++d){
-            if(fs::is_regular(d->path())){
-                io::readFromPCD(d->path().string().c_str(), pc2);
-            }
-        }
-    } else {
-        io::readFromPCD(p.string().c_str(), pc2);
-    }
+    //fs::path p(argv[1]);
+
+    //if(fs::is_directory(p)){
+        //fs::directory_iterator endIter;
+        //for(auto d = fs::directory_iterator(p); d != endIter; ++d){
+            //if(fs::is_regular(d->path())){
+                //io::readFromPCD(d->path().string().c_str(), pc2);
+            //}
+        //}
+    //} else {
+        //io::readFromPCD(p.string().c_str(), pc2);
+    //}
 
     Visualiser vs{"Motion Test"};
-    vs.addPointCloud("cloud1", pc2);
+    vs.addPointCloud("cloud1", pc);
     vs.spin();
 }

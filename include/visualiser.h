@@ -5,12 +5,12 @@
 #ifndef TESTAPP_VISUALISER_H
 #define TESTAPP_VISUALISER_H
 
-#include <memory>
-#include <unordered_map>
-#include <iostream>
-#include <string>
 #include <fstream>
+#include <iostream>
+#include <memory>
 #include <streambuf>
+#include <string>
+#include <unordered_map>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -27,8 +27,9 @@
 
 namespace cl {
     struct GLFWWindowDeleter {
-        void operator()(GLFWwindow* ptr){
-             glfwDestroyWindow(ptr);
+        void operator()(GLFWwindow *ptr)
+        {
+            glfwDestroyWindow(ptr);
         }
     };
 
@@ -36,35 +37,31 @@ namespace cl {
 
 #pragma pack(push, 1)
     struct Vertex {
-        Vertex(GLfloat x, GLfloat y, GLfloat z) : _x(x), _y(y), _z(z) {};
+        Vertex(GLfloat x, GLfloat y, GLfloat z) : _x(x), _y(y), _z(z){};
         GLfloat _x;
         GLfloat _y;
         GLfloat _z;
     };
     using Vertices = std::vector<Vertex>;
-    using VerticesPtr = std::unique_ptr<Vertices>;
 #pragma pack(pop)
 
     struct Object {
         GLuint vbo;
         GLuint vao;
         size_t size;
-        //VerticesPtr vertices;
     };
     using Objects = std::unordered_map<std::string, Object>;
 
-
-
-
     class Visualiser {
-        size_t _width;
-        size_t _height;
+        int _width;
+        int _height;
         std::string _windowName;
         GLFWSmartWindow _window;
         GLuint _program;
         Objects _objects;
+
         // single camera object
-        Camera _camera;
+        Camera camera_;
 
         // last mouse positions
         double _lastMouseX = 0.0;
@@ -76,14 +73,15 @@ namespace cl {
             init();
         };
 
-        Visualiser(std::string name, size_t width = 800, size_t height = 600)
-                : _windowName(name), _width(width), _height(height)
+        Visualiser(std::string name, int width = 800, int height = 600)
+            : _windowName(name), _width(width), _height(height)
         {
             init();
         };
 
-        ~Visualiser(){
-            for(auto& o : _objects){
+        ~Visualiser()
+        {
+            for (auto &o : _objects) {
                 glDeleteBuffers(1, &o.second.vbo);
                 glDeleteVertexArrays(1, &o.second.vao);
             }
@@ -91,10 +89,9 @@ namespace cl {
             glfwTerminate();
         }
 
-
         void addPointCloud(std::string cloudName, PointCloud::Ptr cloud)
         {
-            if(_objects.find(cloudName) != _objects.end())
+            if (_objects.find(cloudName) != _objects.end())
                 return;
 
             // new object
@@ -103,65 +100,69 @@ namespace cl {
 
             // copy vertices to local buffer
             Vertices vertices;
-            //object.vertices = std::make_unique<Vertices>();
             vertices.reserve(cloud->size());
-            for(auto p = cloud->begin(); p != cloud->end(); ++p) {
-                vertices.push_back({static_cast<GLfloat>(p->x()),
-                                     static_cast<GLfloat>(p->y()),
-                                     static_cast<GLfloat>(p->z())});
+            for (auto p = cloud->begin(); p != cloud->end(); ++p) {
+                vertices.push_back(
+                    {static_cast<GLfloat>(p->x()), static_cast<GLfloat>(p->y()), static_cast<GLfloat>(p->z())});
             }
 
             glGenVertexArrays(1, &object.vao);
             glBindVertexArray(object.vao);
             glGenBuffers(1, &object.vbo);
             glBindBuffer(GL_ARRAY_BUFFER, object.vbo);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size()*3*sizeof(GLfloat), reinterpret_cast<const void *>(vertices.data()), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, vertices.size() * 3 * sizeof(GLfloat),
+                         reinterpret_cast<const void *>(vertices.data()), GL_STATIC_DRAW);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
             glEnableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
 
-
-            _objects[cloudName] = std::move(object);
+            _objects[cloudName] = object;
         }
 
         void spin()
         {
 
-            glm::mat4 model;
-            model = glm::scale(model, glm::vec3(0.001f, 0.001f, 0.001f));
-
+            glm::mat4 model(1.0f);
             glm::mat4 view;
-            // Note that we're translating the scene in the reverse direction of where we want to move
-            //view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
             glm::mat4 projection;
-            projection = glm::perspective(45.0f, (GLfloat )800 / 600, 0.1f, 100.0f);
 
-            GLfloat lastFrame = 0.0f;  	// Time of last frame
+            GLfloat lastFrame = 0.0f; // Time of last frame
+
+            glm::mat4 mvp;
+
+            glm::vec3 cameraPosition(0.0f, 0.0f, 100.0f);
+            glm::vec3 cameraTarget(0.0f, 0.0f, 0.0f);
+            glm::vec3 upVector(0.0f, 1.0f, 0.0f);
+
+            projection = glm::perspective(45.0f, (GLfloat)_width / _height, 0.1f, 100.0f);
+            //projection = glm::ortho(0.0f, 400.0f, 0.0f, 400.0f, -1.0f, 1.0f);
 
             /* Loop until the user closes the window */
-            while (!glfwWindowShouldClose(_window.get()))
-            {
+            while (!glfwWindowShouldClose(_window.get())) {
+                GLfloat currentFrame = glfwGetTime();
+                GLfloat timeDiff = currentFrame - lastFrame;
+
                 // process keys
-                if(!processKeys())
+                if (!processKeys(timeDiff))
                     break;
+
+                view = camera_.GetViewMatrix();
+                //view = glm::lookAt(cameraPosition, cameraTarget, upVector);
+
+                glfwGetWindowSize(_window.get(), &_width, &_height);
+
+                glm::mat4 mvp = projection * view * model;
 
                 /* Render here */
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
                 glUseProgram(_program);
 
-                GLuint modelLoc = glGetUniformLocation(_program, "model");
-                glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+                GLuint mvp_id = glGetUniformLocation(_program, "mvp");
+                glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
 
-                GLuint viewLoc = glGetUniformLocation(_program, "view");
-                glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(_camera.GetViewMatrix()));
-
-                GLuint projectionLoc = glGetUniformLocation(_program, "projection");
-                glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-                for(auto& o : _objects) {
+                for (auto &o : _objects) {
                     glBindVertexArray(o.second.vao);
                     glDrawArrays(GL_POINTS, 0, o.second.size);
                     glBindVertexArray(0);
@@ -181,36 +182,36 @@ namespace cl {
         void loadShaders()
         {
             std::ifstream vertexStream("shaders/point_vertex.shader", std::ios::in);
-            if(!vertexStream.is_open()){
+            if (!vertexStream.is_open()) {
                 throw std::runtime_error("Cannot load vertex shader.");
             }
-            std::string vertexShaderText ((std::istreambuf_iterator<char>(vertexStream)),
-                            std::istreambuf_iterator<char>());
+            std::string vertexShaderText((std::istreambuf_iterator<char>(vertexStream)),
+                                         std::istreambuf_iterator<char>());
             const char *c_str = vertexShaderText.c_str();
 
             GLuint _vertexShader = glCreateShader(GL_VERTEX_SHADER);
             glShaderSource(_vertexShader, 1, &c_str, NULL);
             glCompileShader(_vertexShader);
 
-
             std::ifstream fragmentStream("shaders/point_fragment.shader", std::ios::in);
-            if(!fragmentStream.is_open()){
+            if (!fragmentStream.is_open()) {
                 throw std::runtime_error("Cannot load fragment shader.");
             }
-            std::string fragmentShaderText ((std::istreambuf_iterator<char>(fragmentStream)),
-                                          std::istreambuf_iterator<char>());
+            std::string fragmentShaderText((std::istreambuf_iterator<char>(fragmentStream)),
+                                           std::istreambuf_iterator<char>());
             c_str = fragmentShaderText.c_str();
 
             GLuint _fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
             glShaderSource(_fragmentShader, 1, &c_str, NULL);
             glCompileShader(_fragmentShader);
 
-
             // create program
             _program = glCreateProgram();
             glAttachShader(_program, _vertexShader);
             glAttachShader(_program, _fragmentShader);
             glLinkProgram(_program);
+            glDetachShader(_program, _vertexShader);
+            glDetachShader(_program, _fragmentShader);
             glDeleteShader(_vertexShader);
             glDeleteShader(_fragmentShader);
         }
@@ -221,7 +222,7 @@ namespace cl {
             if (!glfwInit())
                 throw std::runtime_error("Cannot initialise GLFW.");
 
-            glfwSetErrorCallback([](int error, const char* message){
+            glfwSetErrorCallback([](int error, const char *message) {
                 std::cout << "Error: " << error << " Message: " << message << std::endl;
             });
 
@@ -244,37 +245,32 @@ namespace cl {
             glEnable(GL_PROGRAM_POINT_SIZE);
 
             // set callback function on resize
-            glfwSetWindowSizeCallback(_window.get(), [](GLFWwindow* window, int width, int height) {
-                glViewport(0, 0, width, height);
-            });
+            glfwSetWindowSizeCallback(
+                _window.get(), [](GLFWwindow *window, int width, int height) { glViewport(0, 0, width, height); });
 
             _lastMouseX = 0.0;
             _lastMouseY = 0.0;
-
-            // set mouse button callback
-            glfwSetMouseButtonCallback(_window.get(), [](GLFWwindow* window, int button, int state, int mode){
-                std::cout << "Mouse button: " << button << " State: " << state << " Mode: " << mode << std::endl;
-            });
         }
 
-        bool processKeys(){
-            if(glfwGetKey(_window.get(), GLFW_KEY_W)){
-                _camera.ProcessKeyboard(CameraMovement::Forward, 0.001);
+        bool processKeys(GLfloat diffTime)
+        {
+            if (glfwGetKey(_window.get(), GLFW_KEY_W)) {
+                camera_.ProcessKeyboard(CameraMovement::Forward, diffTime);
             }
 
-            if(glfwGetKey(_window.get(), GLFW_KEY_S)) {
-                _camera.ProcessKeyboard(CameraMovement::Backward, 0.001);
+            if (glfwGetKey(_window.get(), GLFW_KEY_S)) {
+                camera_.ProcessKeyboard(CameraMovement::Backward, diffTime);
             }
 
-            if(glfwGetKey(_window.get(), GLFW_KEY_A)){
-                _camera.ProcessKeyboard(CameraMovement::Left, 0.001);
+            if (glfwGetKey(_window.get(), GLFW_KEY_A)) {
+                camera_.ProcessKeyboard(CameraMovement::Left, diffTime);
             }
 
-            if(glfwGetKey(_window.get(), GLFW_KEY_D)){
-                _camera.ProcessKeyboard(CameraMovement::Right, 0.001);
+            if (glfwGetKey(_window.get(), GLFW_KEY_D)) {
+                camera_.ProcessKeyboard(CameraMovement::Right, diffTime);
             }
 
-            if(glfwGetKey(_window.get(), GLFW_KEY_ESCAPE)){
+            if (glfwGetKey(_window.get(), GLFW_KEY_ESCAPE)) {
                 return false;
             }
 
@@ -283,8 +279,8 @@ namespace cl {
             double y;
             glfwGetCursorPos(_window.get(), &x, &y);
 
-            if(_lastMouseY != 0.0 && _lastMouseX != 0.0) {
-                _camera.ProcessMouseMovement(x - _lastMouseX, _lastMouseY - y);
+            if (_lastMouseY != 0.0 && _lastMouseX != 0.0) {
+                camera_.ProcessMouseMovement(x - _lastMouseX, _lastMouseY - y);
             }
             _lastMouseX = x;
             _lastMouseY = y;
@@ -294,4 +290,4 @@ namespace cl {
     };
 }
 
-#endif //TESTAPP_VISUALISER_H
+#endif // TESTAPP_VISUALISER_H
