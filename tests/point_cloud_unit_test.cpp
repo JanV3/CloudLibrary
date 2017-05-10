@@ -1,6 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "cl.hpp"
+#include "point_cloud.hpp"
 
 TEST_CASE("Add two _points"){
     cl::Point p1{1.0, 2.0, 3.0};

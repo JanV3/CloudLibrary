@@ -4,7 +4,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "cl.hpp"
+#include "point_cloud.hpp"
 
 namespace cl {
 namespace io {
