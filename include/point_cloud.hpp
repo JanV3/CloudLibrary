@@ -8,16 +8,29 @@
 
 namespace cl {
 
+	/**
+	* Compare two real values
+	*/
+	template<class T>
+	typename std::enable_if<!std::numeric_limits<T>::is_integer, bool>::type
+		compare(T x, T y, int ulp = 10)
+	{
+		// the machine epsilon has to be scaled to the magnitude of the values used
+		// and multiplied by the desired precision in ULPs (units in the last place)
+		return std::abs(x - y) < std::numeric_limits<T>::epsilon() * std::abs(x + y) * ulp
+			// unless the result is subnormal
+			|| std::abs(x - y) < std::numeric_limits<T>::min();
+	}
+
     /**
-    * Point class represents 3D point with 'double' underlying type
+    * Templated point class that represents 3D point
     */
     template <typename T>
-    class PointXYZ {
-    public:
+    struct PointXYZ {
         /**
         * Create point with default values
         */
-        PointXYZ() : _x(T()), _y(T()), _z(T()){};
+        PointXYZ() : x(T(0.0)), y(T(0.0)), z(T(0.0)){};
 
         /**
         * Create point with specified values
@@ -25,111 +38,116 @@ namespace cl {
         * @param y
         * @param z
         */
-        PointXYZ(T x, T y, T z) : _x(x), _y(y), _z(z){};
+        PointXYZ(T xx, T yy, T zz) : x(xx), y(yy), z(zz){};
 
-        /**
-        * Adds one point to another
-        * @param point
-        * @return new point
-        */
-        PointXYZ<T> operator+(PointXYZ<T> &point) const
-        {
-            PointXYZ<T> p = *this;
-            p._x += point.x();
-            p._y += point.y();
-            p._z += point.z();
-            return p;
-        }
+		// X axis value
+        T x;
 
-        /**
-        * Subtracts one point from another
-        * @param point
-        * @return new point
-        */
-        PointXYZ<T> operator-(PointXYZ<T> &point) const
-        {
-            PointXYZ<T> p = *this;
-            p._x -= point.x();
-            p._y -= point.y();
-            p._z -= point.z();
-            return p;
-        }
+		// Y axis value
+        T y;
 
-        /**
-        * Multiplies one point by another
-        * @param point
-        * @return new point
-        */
-        PointXYZ<T> operator*(PointXYZ<T> &point) const
-        {
-            PointXYZ<T> p = *this;
-            p._x *= point.x();
-            p._y *= point.y();
-            p._z *= point.z();
-            return p;
-        }
-
-        /**
-        * Divides one point by another
-        * @param point
-        * @return new point
-        */
-        PointXYZ<T> operator/(PointXYZ<T> &point) const
-        {
-            PointXYZ<T> p = *this;
-            p._x /= point.x();
-            p._y /= point.y();
-            p._z /= point.z();
-            return p;
-        }
-
-        /**
-        * Stream operator for Point type
-        * @param stream
-        * @param point
-        * @return
-        */
-        friend std::ostream &operator<<(std::ostream &stream, const PointXYZ<T> &point)
-        {
-            stream << "[ " << point._x << ", " << point._y << ", " << point._z << " ]\n";
-            return stream;
-        }
-
-        /**
-        * Get x component
-        * @return
-        */
-        T x() const
-        {
-            return _x;
-        }
-
-        /**
-        * Get y component
-        * @return
-        */
-        T y() const
-        {
-            return _y;
-        }
-
-        /**
-        * Get z component
-        * @return
-        */
-        T z() const
-        {
-            return _z;
-        }
-
-    private:
-        T _x;
-        T _y;
-        T _z;
+		// Z axis value
+        T z;
     };
 
-    // Basic point alias
-    using Point = PointXYZ<double>;
+	/**
+	* Stream operator for Point type
+	* @param stream
+	* @param point
+	* @return
+	*/
+	template<typename T>
+	std::ostream &operator<<(std::ostream &stream, const PointXYZ<T> &point)
+	{
+		stream << "[ " << point.x << ", " << point.y << ", " << point.z << " ]\n";
+		return stream;
+	}
+
+	/**
+	* Adds one point to another
+	* @param point
+	* @return new point
+	*/
+	template<typename T>
+	auto operator+(const PointXYZ<T> &p1, const PointXYZ<T> &p2)
+	{
+		PointXYZ<T> p3;
+		p3.x = p1.x + p2.x;
+		p3.y = p1.y + p2.y;
+		p3.z = p1.z + p2.z;
+		return p3;
+	}
+
+	/**
+	* Subtracts one point from another
+	* @param point
+	* @return new point
+	*/
+	template<typename T>
+	auto operator-(const PointXYZ<T> &p1, const PointXYZ<T> &p2)
+	{
+		PointXYZ<T> p3;
+		p3.x = p1.x - p2.x;
+		p3.y = p1.y - p2.y;
+		p3.z = p1.z - p2.z;
+		return p3;
+	}
+
+	/**
+	* Multiplies one point by another
+	* @param point
+	* @return new point
+	*/
+	template<typename T>
+	auto operator*(const PointXYZ<T> &p1, const PointXYZ<T> &p2)
+	{
+		PointXYZ<T> p3;
+		p3.x = p1.x * p2.x;
+		p3.y = p1.y * p2.y;
+		p3.z = p1.z * p2.z;
+		return p3;
+	}
+
+	/**
+	* Divides one point by another
+	* @param point
+	* @return new point
+	*/
+	template<typename T>
+	auto operator/(const PointXYZ<T> &p1, const PointXYZ<T> &p2)
+	{
+		PointXYZ<T> p3;
+		p3.x = p1.x / p2.x;
+		p3.y = p1.y / p2.y;
+		p3.z = p1.z / p2.z;
+		return p3;
+	}
+
+	/**
+	* Divides one point by scalar value
+	* @param scalar value
+	* @return new point
+	*/
+	template<typename T, typename D>
+	auto operator/(const PointXYZ<T> &p1, const D& value)
+	{
+		PointXYZ<T> p3;
+		p3.x = p1.x / static_cast<T>(value);
+		p3.y = p1.y / static_cast<T>(value);
+		p3.z = p1.z / static_cast<T>(value);
+		return p3;
+	}
+
+	/**
+	* Compare two points
+	* @param point
+	* @return true when points are same, otherwise false
+	*/
+	template<typename T>
+	auto operator==(const PointXYZ<T> &p1, const PointXYZ<T> &p2)
+	{
+		return compare(p1.x, p2.x) && compare(p1.y, p2.y) && compare(p1.z, p2.z);
+	}
 
     /**
     * Class that represents point cloud
@@ -137,8 +155,14 @@ namespace cl {
     template <typename T>
     class PointCloudBase {
         using Points = std::vector<T>;
-
+		
     public:
+
+		/**
+		* Type of underlying point type
+		*/
+		using PointType = T;
+
         /**
         * Shared pointer to PointCloud
         */
@@ -150,7 +174,7 @@ namespace cl {
         */
         void push_back(const T &point)
         {
-            _points.push_back(point);
+            points_.push_back(point);
         }
 
         /**
@@ -159,7 +183,7 @@ namespace cl {
         */
         auto begin() const
         {
-            return _points.begin();
+            return points_.begin();
         }
 
         /**
@@ -168,7 +192,7 @@ namespace cl {
         */
         auto end() const
         {
-            return _points.end();
+            return points_.end();
         }
 
         /**
@@ -177,7 +201,7 @@ namespace cl {
         */
         auto size() const
         {
-            return _points.size();
+            return points_.size();
         }
 
         /**
@@ -187,7 +211,7 @@ namespace cl {
         */
         auto const &at(size_t index) const
         {
-            return _points.at(index);
+            return points_.at(index);
         }
 
         /**
@@ -196,7 +220,7 @@ namespace cl {
         */
         auto const data() const
         {
-            return _points.data();
+            return points_.data();
         }
 
         /**
@@ -206,7 +230,7 @@ namespace cl {
         */
         PointCloudBase<T> &operator+(const PointCloudBase<T> &cloud)
         {
-            _points.insert(_points.begin(), cloud.begin(), cloud.end());
+            points_.insert(points_.begin(), cloud.begin(), cloud.end());
             return *this;
         }
 
@@ -225,8 +249,11 @@ namespace cl {
         }
 
     private:
-        Points _points;
+        Points points_;
     };
+
+	// Basic point alias
+	using Point = PointXYZ<double>;
 
     // Basic point cloud alias
     using PointCloud = PointCloudBase<Point>;

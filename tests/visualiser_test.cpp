@@ -16,7 +16,7 @@ int main(int argc, char **argv)
     if (argc == 1) {
         std::mt19937_64 rng;
         std::uniform_real_distribution<float> uni_real(-100.0f, 100.0f);
-        for (auto i = 0; i < 100000; ++i) {
+        for (auto i = 0; i < 50000; ++i) {
             auto r = uni_real(rng);
             auto s = uni_real(rng);
             auto t = uni_real(rng);

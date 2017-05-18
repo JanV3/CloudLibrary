@@ -217,9 +217,9 @@ namespace cl {
             Vertices vertices;
             vertices.reserve(cloud->size());
             for (auto p = cloud->begin(); p != cloud->end(); ++p) {
-                auto x = static_cast<GLfloat>(p->x());
-                auto y = static_cast<GLfloat>(p->y());
-                auto z = static_cast<GLfloat>(p->z());
+                auto x = static_cast<GLfloat>(p->x);
+                auto y = static_cast<GLfloat>(p->y);
+                auto z = static_cast<GLfloat>(p->z);
 
                 if (x > maxPoint.x)
                     maxPoint.x = x;
