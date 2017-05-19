@@ -274,9 +274,6 @@ namespace cl {
                 if (!processKeys(static_cast<GLfloat>(timeDiff)))
                     break;
 
-                // get window size
-                glfwGetWindowSize(window_, &width_, &height_);
-
                 // update view and projection matrix
                 view = camera_.getViewMatrix();
                 projection = glm::perspective(45.0f, (GLfloat)width_ / height_, 0.0f, 100000.0f);
@@ -301,6 +298,23 @@ namespace cl {
                 glfwPollEvents();
             }
         }
+
+		friend void onResize(GLFWwindow *w, int width, int height) {
+			glViewport(0, 0, width, height);
+			auto self = static_cast<VisualiserImpl*>(glfwGetWindowUserPointer(w));
+			self->width_ = width;
+			self->height_ = height;
+		}
+
+		friend void onMouseMove(GLFWwindow *w, double x, double y) {
+			auto self = static_cast<VisualiserImpl*>(glfwGetWindowUserPointer(w));
+
+			if (self->lastY != 0.0 && self->lastX != 0.0) {
+				self->camera_.processMouseMovement(static_cast<GLfloat>(x - self->lastX), static_cast<GLfloat>(self->lastY - y));
+			}
+			self->lastX = x;
+			self->lastY = y;
+		}
 
     private:
         std::string loadFile(std::string path)
@@ -355,6 +369,9 @@ namespace cl {
             }
             glfwMakeContextCurrent(window_);
 
+			// set current object as user pointer to GLFW
+			glfwSetWindowUserPointer(window_, this);
+
             // set mouse to disabled state
             glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -372,12 +389,13 @@ namespace cl {
             glEnable(GL_PROGRAM_POINT_SIZE);
 
             // set callback function on resize
-            glfwSetWindowSizeCallback(
-                window_, [](GLFWwindow *window, int width, int height) { glViewport(0, 0, width, height); });
+			glfwSetWindowSizeCallback(window_, onResize);
+
+			// set mouse move callback
+			glfwSetCursorPosCallback(window_, onMouseMove);
 
             lastX = 0.0;
             lastY = 0.0;
-
             maxPoint.x = std::numeric_limits<GLfloat>::min();
             maxPoint.y = std::numeric_limits<GLfloat>::min();
             maxPoint.z = std::numeric_limits<GLfloat>::min();
@@ -415,17 +433,6 @@ namespace cl {
             if (glfwGetKey(window_, GLFW_KEY_ESCAPE)) {
                 return false;
             }
-
-            // get mouse position
-            double x;
-            double y;
-            glfwGetCursorPos(window_, &x, &y);
-
-            if (lastY != 0.0 && lastX != 0.0) {
-                camera_.processMouseMovement(static_cast<GLfloat>(x - lastX), static_cast<GLfloat>(lastY - y));
-            }
-            lastX = x;
-            lastY = y;
 
             return true;
         }
