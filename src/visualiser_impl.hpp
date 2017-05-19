@@ -24,127 +24,147 @@ namespace cl {
         // specific input methods
         enum class CameraMovement { Forward, Backward, Left, Right, Up, Down };
 
+		struct CameraVectors
+		{
+			glm::vec3 front;
+			glm::vec3 right;
+			glm::vec3 up;
+		};
+
+		class CameraFPS {
+		protected:
+			CameraVectors getInitialVectors()
+			{
+				CameraVectors cv;
+				cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
+				cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
+				return cv;
+			}
+
+			void updateVectors(GLfloat& yaw, GLfloat& pitch, glm::vec3& worldUp, CameraVectors& cv)
+			{
+				if (pitch > 89.0f)
+					pitch = 89.0f;
+				if (pitch < -89.0f)
+					pitch = -89.0f;
+
+				// Calculate the new Front vector
+				glm::vec3 front;
+				front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+				front.y = sin(glm::radians(pitch));
+				front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+				cv.front = glm::normalize(front);
+				// Also re-calculate the Right and Up vector
+				cv.right = glm::normalize(glm::cross(cv.front, worldUp));
+				cv.up = glm::normalize(glm::cross(cv.right, cv.front));
+			}
+		};
+
+		class CameraFlight {
+		protected:
+			CameraVectors getInitialVectors()
+			{
+				CameraVectors cv;
+				cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
+				cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
+				return cv;
+			}
+
+			void updateVectors(GLfloat& yaw, GLfloat& pitch, glm::vec3& worldUp, CameraVectors& cv)
+			{
+				GLfloat roll = 0.0f;
+
+				// Fuck quaternions
+				glm::fquat pitchQuat(cos(glm::radians(pitch / 2.0f)), cv.right * (float)sin(glm::radians(pitch / 2.0f)));
+				glm::fquat yawQuat(cos(glm::radians(yaw / 2.0f)), cv.up * (float)sin(glm::radians(yaw / 2.0f)));
+				glm::fquat rollQuat(cos(glm::radians(roll / 2.0f)), cv.front * (float)sin(glm::radians(roll / 2.0f)));
+
+				auto rotation = yawQuat * pitchQuat * rollQuat;
+
+				cv.front = rotation * cv.front * glm::conjugate(rotation);
+				cv.up = rotation * cv.up * glm::conjugate(rotation);
+				cv.right = glm::cross(cv.front, cv.up);
+			}
+		};
+
         // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and
         // Matrices for use in OpenGL
-        class Camera {
+		template<typename CameraPolicy>
+        class Camera : public CameraPolicy {
+
+			using CameraPolicy::getInitialVectors;
+			using CameraPolicy::updateVectors;
+
             // Default camera values
             const GLfloat SPEED = 10000.0f;
             const GLfloat SENSITIVTY = 0.15f;
-            const GLfloat ZOOM = 45.0f;
 
         public:
             // Camera Attributes
-            glm::vec3 Position;
-            glm::vec3 Front;
-            glm::vec3 Up;
-            glm::vec3 Right;
-            glm::vec3 WorldUp;
+            glm::vec3 position;
+            glm::vec3 worldUp;
+            CameraVectors cameraVectors;
+
             // Eular Angles
-            GLfloat Yaw;
-            GLfloat Pitch;
+            GLfloat yaw;
+            GLfloat pitch;
+
             // Camera options
-            GLfloat MovementSpeed;
-            GLfloat MouseSensitivity;
-            GLfloat Zoom;
+            GLfloat movementSpeed;
+            GLfloat mouseSensitivity;
 
             // Constructor with vectors
-            Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f),
-                   GLfloat yaw = -90.0f, GLfloat pitch = 0.0f)
-                : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
+            Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), GLfloat yaw = -90.0f, GLfloat pitch = 0.0f)
+                : movementSpeed(SPEED), mouseSensitivity(SENSITIVTY)
             {
-                this->Position = position;
-                this->WorldUp = up;
-                this->Yaw = yaw;
-                this->Pitch = pitch;
-                this->updateCameraVectors();
-            }
-            // Constructor with scalar values
-            Camera(GLfloat posX, GLfloat posY, GLfloat posZ, GLfloat upX, GLfloat upY, GLfloat upZ, GLfloat yaw,
-                   GLfloat pitch)
-                : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVTY), Zoom(ZOOM)
-            {
-                this->Position = glm::vec3(posX, posY, posZ);
-                this->WorldUp = glm::vec3(upX, upY, upZ);
-                this->Yaw = yaw;
-                this->Pitch = pitch;
-                this->updateCameraVectors();
+                this->position = position;
+                this->worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+                this->yaw = yaw;
+                this->pitch = pitch;
+
+				cameraVectors = getInitialVectors();
+
+				updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
 
             // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
             glm::mat4 getViewMatrix()
             {
-                return glm::lookAt(this->Position, this->Position + this->Front, this->Up);
+                return glm::lookAt(position, position + this->cameraVectors.front, this->cameraVectors.up);
             }
 
             // Processes input received from any keyboard-like input system. Accepts input parameter in the form of
             // camera defined ENUM (to abstract it from windowing systems)
             void processKeyboard(CameraMovement direction, GLfloat deltaTime)
             {
-                GLfloat velocity = this->MovementSpeed * deltaTime;
+                GLfloat velocity = this->movementSpeed * deltaTime;
                 if (direction == CameraMovement::Forward)
-                    this->Position += this->Front * velocity;
+                    position += cameraVectors.front * velocity;
                 if (direction == CameraMovement::Backward)
-                    this->Position -= this->Front * velocity;
+                    position -= cameraVectors.front * velocity;
                 if (direction == CameraMovement::Left)
-                    this->Position -= this->Right * velocity;
+                    position -= cameraVectors.right * velocity;
                 if (direction == CameraMovement::Right)
-                    this->Position += this->Right * velocity;
+                    position += cameraVectors.right * velocity;
                 if (direction == CameraMovement::Up)
-                    this->Position += this->Up * velocity;
+                    position += cameraVectors.up * velocity;
                 if (direction == CameraMovement::Down)
-                    this->Position -= this->Up * velocity;
+                    position -= cameraVectors.up * velocity;
             }
 
             // Processes input received from a mouse input system. Expects the offset value in both the x and y
             // direction.
-            void processMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = true)
+            void processMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = false)
             {
-                xoffset *= this->MouseSensitivity;
-                yoffset *= this->MouseSensitivity;
+                xoffset *= mouseSensitivity;
+                yoffset *= mouseSensitivity;
 
-                this->Yaw += xoffset;
-                this->Pitch += yoffset;
-
-                // Make sure that when pitch is out of bounds, screen doesn't get flipped
-                if (constrainPitch) {
-                    if (this->Pitch > 89.0f)
-                        this->Pitch = 89.0f;
-                    if (this->Pitch < -89.0f)
-                        this->Pitch = -89.0f;
-                }
+                yaw += xoffset;
+                pitch += yoffset;
 
                 // Update Front, Right and Up Vectors using the updated Eular angles
-                this->updateCameraVectors();
-            }
-
-            // Processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
-            void processMouseScroll(GLfloat yoffset)
-            {
-                if (this->Zoom >= 1.0f && this->Zoom <= 45.0f)
-                    this->Zoom -= yoffset;
-                if (this->Zoom <= 1.0f)
-                    this->Zoom = 1.0f;
-                if (this->Zoom >= 45.0f)
-                    this->Zoom = 45.0f;
-            }
-
-        private:
-            // Calculates the front vector from the Camera's (updated) Eular Angles
-            void updateCameraVectors()
-            {
-                // Calculate the new Front vector
-                glm::vec3 front;
-                front.x = cos(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
-                front.y = sin(glm::radians(this->Pitch));
-                front.z = sin(glm::radians(this->Yaw)) * cos(glm::radians(this->Pitch));
-                this->Front = glm::normalize(front);
-                // Also re-calculate the Right and Up vector
-                this->Right = glm::normalize(glm::cross(this->Front, this->WorldUp)); // Normalize the vectors, because
-                                                                                      // their length gets closer to 0
-                                                                                      // the more you look up or down
-                                                                                      // which results in slower
-                                                                                      // movement.
-                this->Up = glm::normalize(glm::cross(this->Right, this->Front));
+				updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
         };
 
@@ -171,7 +191,7 @@ namespace cl {
         GLFWwindow *window_;
         GLuint program_;
         Objects objects_;
-        Camera camera_;
+        Camera<CameraFlight> camera_;
 
         glm::vec3 maxPoint;
         glm::vec3 minPoint;
@@ -252,7 +272,7 @@ namespace cl {
             objects_[cloudName] = object;
 
             // calculate speed of movement
-            camera_.MovementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
+            camera_.movementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
         }
 
         void spin()
