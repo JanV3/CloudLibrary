@@ -161,7 +161,7 @@ namespace cl {
 		/**
 		* Type of underlying point type
 		*/
-		using PointType = T;
+		using type = T;
 
         /**
         * Shared pointer to PointCloud

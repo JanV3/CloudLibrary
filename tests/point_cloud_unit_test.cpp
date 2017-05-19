@@ -3,7 +3,7 @@
 #include "point_cloud.hpp"
 #include "algorithms.hpp"
 
-TEST_CASE("Add two _points")
+TEST_CASE("Add two points")
 {
     cl::Point p1{1.0, 2.0, 3.0};
     cl::Point p2{3.0, 2.0, 1.0};
@@ -14,7 +14,7 @@ TEST_CASE("Add two _points")
     REQUIRE(p3.z == 4.0);
 }
 
-TEST_CASE("Subtract two _points")
+TEST_CASE("Subtract two points")
 {
     cl::Point p1{1.0, 2.0, 3.0};
     cl::Point p2{3.0, 2.0, 1.0};
@@ -25,7 +25,7 @@ TEST_CASE("Subtract two _points")
     REQUIRE(p3.z == -2.0);
 }
 
-TEST_CASE("Divide two _points")
+TEST_CASE("Divide two points")
 {
     cl::Point p1{1.0, 2.0, 2.0};
     cl::Point p2{4.0, 2.0, 1.0};
@@ -36,7 +36,7 @@ TEST_CASE("Divide two _points")
     REQUIRE(p3.z == 0.5);
 }
 
-TEST_CASE("Multiplies two _points")
+TEST_CASE("Multiplies two points")
 {
     cl::Point p1{1.0, 2.0, 2.0};
     cl::Point p2{4.0, 2.0, 1.0};
@@ -52,7 +52,7 @@ TEST_CASE("Compute centroid")
 	auto cloud = std::make_shared<cl::PointCloud>();
 	cloud->push_back(cl::Point(1.0, 2.0, 3.0));
 	cloud->push_back(cl::Point(3.0, 4.0, 5.0));
-	auto centroid = cl::centroid(cloud);
+	auto centroid = cl::centroid(*cloud);
 
 	REQUIRE(centroid == cl::Point(2.0, 3.0, 4.0));
 }

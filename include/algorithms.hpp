@@ -6,15 +6,9 @@
 #include "point_cloud.hpp"
 
 namespace cl {
-
-	/* TODO: make it tempalted
-	template<typename T>
-	T centroid(PointCloudBase<T>::Ptr cloud) {
-		return std::accumulate(cloud->begin(), cloud->end(), T()) / cloud->size();
-	}*/
-
-	Point centroid(PointCloud::Ptr cloud){
-		return std::accumulate(cloud->begin(), cloud->end(), Point()) / cloud->size();
+	template<typename T, typename P = T::type>
+	P centroid(T cloud) {
+		return std::accumulate(cloud.begin(), cloud.end(), P()) / cloud.size();
 	}
 }
 
