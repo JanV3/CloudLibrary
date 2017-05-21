@@ -6,7 +6,7 @@ namespace cl {
 
     Visualiser::Visualiser(std::string name, int width, int height) : pimpl(new VisualiserImpl(name, width, height)){};
 
-    Visualiser::~Visualiser() {};
+    Visualiser::~Visualiser(){};
 
     void Visualiser::addPointCloud(std::string cloudName, PointCloud::Ptr cloud)
     {

@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
+#include "algorithms.hpp"
 #include "catch.hpp"
 #include "point_cloud.hpp"
-#include "algorithms.hpp"
 
 TEST_CASE("Add two points")
 {
@@ -49,10 +49,10 @@ TEST_CASE("Multiplies two points")
 
 TEST_CASE("Compute centroid")
 {
-	auto cloud = std::make_shared<cl::PointCloud>();
-	cloud->push_back(cl::Point(1.0, 2.0, 3.0));
-	cloud->push_back(cl::Point(3.0, 4.0, 5.0));
-	auto centroid = cl::centroid(*cloud);
+    auto cloud = std::make_shared<cl::PointCloud>();
+    cloud->push_back(cl::Point(1.0, 2.0, 3.0));
+    cloud->push_back(cl::Point(3.0, 4.0, 5.0));
+    auto centroid = cl::centroid(*cloud);
 
-	REQUIRE(centroid == cl::Point(2.0, 3.0, 4.0));
+    REQUIRE(centroid == cl::Point(2.0, 3.0, 4.0));
 }

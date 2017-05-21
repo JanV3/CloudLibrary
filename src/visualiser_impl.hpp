@@ -18,83 +18,110 @@
 #include "point_cloud.hpp"
 
 namespace cl {
+
+    /// @brief Declaration of window resize hander used in Visualiser implementation
+    ///
+    /// @param w pointer to window
+    /// @param width new width of window
+    /// @param height new height of window
+    void onResize(GLFWwindow *w, int width, int height);
+
+    /// @brief Declaration of mouse move handler used in Visualiser implementation
+    ///
+    /// @param w pointer to window
+    /// @param x position of pointer on x-axis
+    /// @param y position of pointer on y-axis
+    void onMouseMove(GLFWwindow *w, double x, double y);
+
+    /// @brief Visualiser provides a way to visualise point cloud in 3D space
     class VisualiserImpl {
 
-        // Defines several possible options for camera movement. Used as abstraction to stay away from window-system
-        // specific input methods
+        /// @brief Defines several possible options for camera movement. Used as abstraction to stay away from
+        /// window-system specific input methods
         enum class CameraMovement { Forward, Backward, Left, Right, Up, Down };
 
-		struct CameraVectors
-		{
-			glm::vec3 front;
-			glm::vec3 right;
-			glm::vec3 up;
-		};
+        /// @brief Parameters of camera
+        struct CameraVectors {
+            glm::vec3 front;
+            glm::vec3 right;
+            glm::vec3 up;
+        };
 
-		class CameraFPS {
-		protected:
-			CameraVectors getInitialVectors()
-			{
-				CameraVectors cv;
-				cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
-				cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
-				return cv;
-			}
+        /// @brief First person camera policy
+        class CameraFPS {
+        protected:
+            /// @brief Create initial camera paramters for FPS camera
+            ///
+            /// @return camera parameters
+            CameraVectors getInitialVectors()
+            {
+                CameraVectors cv;
+                cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
+                cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
+                return cv;
+            }
 
-			void updateVectors(GLfloat& yaw, GLfloat& pitch, glm::vec3& worldUp, CameraVectors& cv)
-			{
-				if (pitch > 89.0f)
-					pitch = 89.0f;
-				if (pitch < -89.0f)
-					pitch = -89.0f;
+            /// @brief Update camera vectors by given input parameters
+            ///
+            /// @param yaw angle of y-axis
+            /// @param pitch angle of x-axis
+            /// @param worldUp up vector of world
+            /// @param cv output camera vectors
+            void updateVectors(GLfloat &yaw, GLfloat &pitch, glm::vec3 &worldUp, CameraVectors &cv)
+            {
+                if (pitch > 89.0f)
+                    pitch = 89.0f;
+                if (pitch < -89.0f)
+                    pitch = -89.0f;
 
-				// Calculate the new Front vector
-				glm::vec3 front;
-				front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-				front.y = sin(glm::radians(pitch));
-				front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+                // Calculate the new Front vector
+                glm::vec3 front;
+                front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+                front.y = sin(glm::radians(pitch));
+                front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
-				cv.front = glm::normalize(front);
-				// Also re-calculate the Right and Up vector
-				cv.right = glm::normalize(glm::cross(cv.front, worldUp));
-				cv.up = glm::normalize(glm::cross(cv.right, cv.front));
-			}
-		};
+                cv.front = glm::normalize(front);
+                // Also re-calculate the Right and Up vector
+                cv.right = glm::normalize(glm::cross(cv.front, worldUp));
+                cv.up = glm::normalize(glm::cross(cv.right, cv.front));
+            }
+        };
 
-		class CameraFlight {
-		protected:
-			CameraVectors getInitialVectors()
-			{
-				CameraVectors cv;
-				cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
-				cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
-				return cv;
-			}
+        class CameraFlight {
+        protected:
+            CameraVectors getInitialVectors()
+            {
+                CameraVectors cv;
+                cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
+                cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
+                return cv;
+            }
 
-			void updateVectors(GLfloat& yaw, GLfloat& pitch, glm::vec3& worldUp, CameraVectors& cv)
-			{
-				GLfloat roll = 0.0f;
+            void updateVectors(GLfloat &yaw, GLfloat &pitch, glm::vec3 &worldUp, CameraVectors &cv)
+            {
+                GLfloat roll = 0.0f;
 
-				// Fuck quaternions
-				glm::fquat pitchQuat(cos(glm::radians(pitch / 2.0f)), cv.right * (float)sin(glm::radians(pitch / 2.0f)));
-				glm::fquat yawQuat(cos(glm::radians(yaw / 2.0f)), cv.up * (float)sin(glm::radians(yaw / 2.0f)));
-				glm::fquat rollQuat(cos(glm::radians(roll / 2.0f)), cv.front * (float)sin(glm::radians(roll / 2.0f)));
+                // Fuck quaternions
+                glm::fquat pitchQuat(cos(glm::radians(pitch / 2.0f)),
+                                     cv.right * (float)sin(glm::radians(pitch / 2.0f)));
+                glm::fquat yawQuat(cos(glm::radians(yaw / 2.0f)), cv.up * (float)sin(glm::radians(yaw / 2.0f)));
+                glm::fquat rollQuat(cos(glm::radians(roll / 2.0f)), cv.front * (float)sin(glm::radians(roll / 2.0f)));
 
-				auto rotation = yawQuat * pitchQuat * rollQuat;
+                auto rotation = yawQuat * pitchQuat * rollQuat;
 
-				cv.front = rotation * cv.front * glm::conjugate(rotation);
-				cv.up = rotation * cv.up * glm::conjugate(rotation);
-				cv.right = glm::cross(cv.front, cv.up);
-			}
-		};
+                cv.front = rotation * cv.front * glm::conjugate(rotation);
+                cv.up = rotation * cv.up * glm::conjugate(rotation);
+                cv.right = glm::cross(cv.front, cv.up);
+            }
+        };
 
         // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and
         // Matrices for use in OpenGL
-		template<typename CameraPolicy>
+        template <typename CameraPolicy>
         class Camera : public CameraPolicy {
 
-			using CameraPolicy::getInitialVectors;
-			using CameraPolicy::updateVectors;
+            using CameraPolicy::getInitialVectors;
+            using CameraPolicy::updateVectors;
 
             // Default camera values
             const GLfloat SPEED = 10000.0f;
@@ -123,9 +150,9 @@ namespace cl {
                 this->yaw = yaw;
                 this->pitch = pitch;
 
-				cameraVectors = getInitialVectors();
+                cameraVectors = getInitialVectors();
 
-				updateVectors(yaw, pitch, worldUp, cameraVectors);
+                updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
 
             // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -164,7 +191,7 @@ namespace cl {
                 pitch += yoffset;
 
                 // Update Front, Right and Up Vectors using the updated Eular angles
-				updateVectors(yaw, pitch, worldUp, cameraVectors);
+                updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
         };
 
@@ -191,7 +218,7 @@ namespace cl {
         GLFWwindow *window_;
         GLuint program_;
         Objects objects_;
-        Camera<CameraFlight> camera_;
+        Camera<CameraFPS> camera_;
 
         glm::vec3 maxPoint;
         glm::vec3 minPoint;
@@ -224,6 +251,10 @@ namespace cl {
             glfwTerminate();
         }
 
+        /// @brief This function append given point cloud to visualiser
+        ///
+        /// @param cloudName name of point cloud (must be unique)
+        /// @param cloud pointer to point cloud
         void addPointCloud(std::string cloudName, PointCloud::Ptr cloud)
         {
             if (objects_.find(cloudName) != objects_.end())
@@ -275,6 +306,7 @@ namespace cl {
             camera_.movementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
         }
 
+        /// @brief This function should be called when user wants to display uploaded point cloud in created window
         void spin()
         {
             glm::mat4 model(1.0f);
@@ -319,22 +351,25 @@ namespace cl {
             }
         }
 
-		friend void onResize(GLFWwindow *w, int width, int height) {
-			glViewport(0, 0, width, height);
-			auto self = static_cast<VisualiserImpl*>(glfwGetWindowUserPointer(w));
-			self->width_ = width;
-			self->height_ = height;
-		}
+        friend void onResize(GLFWwindow *w, int width, int height)
+        {
+            glViewport(0, 0, width, height);
+            auto self = static_cast<VisualiserImpl *>(glfwGetWindowUserPointer(w));
+            self->width_ = width;
+            self->height_ = height;
+        }
 
-		friend void onMouseMove(GLFWwindow *w, double x, double y) {
-			auto self = static_cast<VisualiserImpl*>(glfwGetWindowUserPointer(w));
+        friend void onMouseMove(GLFWwindow *w, double x, double y)
+        {
+            auto self = static_cast<VisualiserImpl *>(glfwGetWindowUserPointer(w));
 
-			if (self->lastY != 0.0 && self->lastX != 0.0) {
-				self->camera_.processMouseMovement(static_cast<GLfloat>(x - self->lastX), static_cast<GLfloat>(self->lastY - y));
-			}
-			self->lastX = x;
-			self->lastY = y;
-		}
+            if (self->lastY != 0.0 && self->lastX != 0.0) {
+                self->camera_.processMouseMovement(static_cast<GLfloat>(x - self->lastX),
+                                                   static_cast<GLfloat>(self->lastY - y));
+            }
+            self->lastX = x;
+            self->lastY = y;
+        }
 
     private:
         std::string loadFile(std::string path)
@@ -389,8 +424,8 @@ namespace cl {
             }
             glfwMakeContextCurrent(window_);
 
-			// set current object as user pointer to GLFW
-			glfwSetWindowUserPointer(window_, this);
+            // set current object as user pointer to GLFW
+            glfwSetWindowUserPointer(window_, this);
 
             // set mouse to disabled state
             glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -409,10 +444,10 @@ namespace cl {
             glEnable(GL_PROGRAM_POINT_SIZE);
 
             // set callback function on resize
-			glfwSetWindowSizeCallback(window_, onResize);
+            glfwSetWindowSizeCallback(window_, onResize);
 
-			// set mouse move callback
-			glfwSetCursorPosCallback(window_, onMouseMove);
+            // set mouse move callback
+            glfwSetCursorPosCallback(window_, onMouseMove);
 
             lastX = 0.0;
             lastY = 0.0;
