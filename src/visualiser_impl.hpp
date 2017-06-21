@@ -372,27 +372,30 @@ namespace cl {
         }
 
     private:
-        std::string loadFile(std::string path)
-        {
-            std::ifstream file(path, std::ios::in);
-            if (!file.is_open()) {
-                throw std::runtime_error("Cannot load shader file.");
-            }
-            return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        }
-
         void loadShaders()
         {
-            auto vss = loadFile("shaders/point_vertex.shader");
-            const char *v_str = vss.c_str();
+            std::string v_str("#version 330 core"
+                              "layout (location = 0) in vec3 position;"
+                              "uniform mat4 mvp;"
+                              "void main()"
+                              "{"
+                              "    gl_PointSize = 3.0;"
+                              "    gl_Position = mvp * vec4(position, 1.0f);"
+                              "}");
             GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-            glShaderSource(vs, 1, &v_str, NULL);
+            char const *v_str_ptr = v_str.c_str();
+            glShaderSource(vs, 1, &v_str_ptr, NULL);
             glCompileShader(vs);
 
-            auto fss = loadFile("shaders/point_fragment.shader");
-            const char *f_str = fss.c_str();
+            std::string f_str("#version 330 core"
+                              "out vec4 color;"
+                              "void main()"
+                              "{"
+                              "    color = vec4(1.0f, 0.8f, 0.2f, 1.0f);"
+                              "}");
             GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-            glShaderSource(fs, 1, &f_str, NULL);
+            char const *f_str_ptr = f_str.c_str();
+            glShaderSource(fs, 1, &f_str_ptr, NULL);
             glCompileShader(fs);
 
             // create program
