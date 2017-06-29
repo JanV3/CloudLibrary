@@ -21,7 +21,7 @@ namespace cl {
             std::string data;
         };
 
-        std::ostream &operator<<(std::ostream &input, PCDHeader &header)
+        inline std::ostream &operator<<(std::ostream &input, PCDHeader &header)
         {
             input << "Version: " << header.version << std::endl;
             input << "Width: " << header.width << std::endl;
@@ -31,7 +31,7 @@ namespace cl {
             return input;
         };
 
-        void readFromPCD(std::string path, PointCloud::Ptr cloud)
+        inline void readFromPCD(std::string path, PointCloud::Ptr cloud)
         {
             std::ifstream file(path);
             if (!file.is_open())
@@ -124,7 +124,7 @@ namespace cl {
             return;
         }
 
-		void saveToFile(std::string path, PointCloud& cloud)
+		inline void saveToFile(std::string path, PointCloud& cloud)
 		{
 			std::ofstream f(path);
 			f << cloud.size() << '\n';
@@ -133,7 +133,7 @@ namespace cl {
 			}
 		}
 
-		void loadFromFile(std::string path, PointCloud& cloud)
+		inline void loadFromFile(std::string path, PointCloud& cloud)
 		{
 			std::ifstream f(path);
 			size_t points;
@@ -147,12 +147,21 @@ namespace cl {
 			}
 		}
 
-		void saveToFileBinary(std::string path, PointCloud& cloud)
+		inline void saveToFileBinary(std::string path, PointCloud& cloud)
 		{
 			std::ofstream f(path, std::ios::binary);
 			auto size = cloud.size();
 			f.write(reinterpret_cast<char*>(&size), sizeof(size));
-			f.write(reinterpret_cast<const char*>(cloud.data()), sizeof(const char) * sizeof(double));
+			f.write(reinterpret_cast<const char*>(cloud.data()), sizeof(float) * size);
+		}
+
+		inline void loadFromFileBinary(std::string path, PointCloud& cloud)
+		{
+			std::ifstream f(path, std::ios::binary);
+			size_t size;
+			f.read(reinterpret_cast<char*>(&size), sizeof(size));
+			cloud.resize(size);
+			f.read(reinterpret_cast<char*>(cloud.data()), sizeof(float) * size);
 		}
     } // namespace io
 } // namespace cl

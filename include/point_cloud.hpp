@@ -200,6 +200,14 @@ namespace cl {
             return points_.size();
         }
 
+		/**
+		* Resize point cloud to specific size
+		*/
+		void resize(size_t size)
+		{
+			points_.resize(size);
+		}
+
         /**
 	* Check if point cloud empty
 	* @return true if empty
@@ -214,7 +222,7 @@ namespace cl {
         * @param index position of point in cloud
         * @return point
         */
-        auto const &at(size_t index) const
+        auto &at(size_t index)
         {
             return points_.at(index);
         }
@@ -223,7 +231,7 @@ namespace cl {
         * Get pointer to data of underlaying container
         * @return
         */
-        auto const data() const
+        auto data()
         {
             return points_.data();
         }
@@ -258,13 +266,13 @@ namespace cl {
     };
 
     // Basic point alias
-    using Point = PointXYZ<double>;
+    using Point = PointXYZ<float>;
 
     // Basic point cloud alias
     using PointCloud = PointCloudBase<Point>;
 
     // Point indices
-    using PointIndices = std::vector<int>;
+	using PointIndices = std::vector<int>;
 }
 
 #endif // CL_POINT_CLOUD_HPP
