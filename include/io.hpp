@@ -147,21 +147,30 @@ namespace cl {
 			}
 		}
 
-		inline void saveToFileBinary(std::string path, PointCloud& cloud)
+		inline void saveToBin(std::string path, PointCloud& cloud)
 		{
 			std::ofstream f(path, std::ios::binary);
-			auto size = cloud.size();
+			unsigned int clouds = 1;
+			unsigned char flags = 0;
+			auto size = static_cast<unsigned int>(cloud.size());
+
+			f.write(reinterpret_cast<char*>(&clouds), sizeof(clouds));
 			f.write(reinterpret_cast<char*>(&size), sizeof(size));
-			f.write(reinterpret_cast<const char*>(cloud.data()), sizeof(float) * size);
+			f.write(reinterpret_cast<char*>(&flags), sizeof(flags));
+			f.write(reinterpret_cast<const char*>(cloud.data()), sizeof(float) * size * 3);
 		}
 
-		inline void loadFromFileBinary(std::string path, PointCloud& cloud)
+		inline void loadFromBin(std::string path, PointCloud& cloud)
 		{
 			std::ifstream f(path, std::ios::binary);
-			size_t size;
+			unsigned int size;
+			unsigned char flags;
+			unsigned int clouds;
+			f.read(reinterpret_cast<char*>(&clouds), sizeof(clouds));
 			f.read(reinterpret_cast<char*>(&size), sizeof(size));
+			f.read(reinterpret_cast<char*>(&flags), sizeof(flags));
 			cloud.resize(size);
-			f.read(reinterpret_cast<char*>(cloud.data()), sizeof(float) * size);
+			f.read(reinterpret_cast<char*>(cloud.data()), sizeof(float) * size * 3);
 		}
     } // namespace io
 } // namespace cl
