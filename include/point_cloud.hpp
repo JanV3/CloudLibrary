@@ -264,7 +264,7 @@ namespace cl {
     using PointCloud = PointCloudBase<Point>;
 
     // Point indices
-    using PointIndices = std::vector<int>
+    using PointIndices = std::vector<int>;
 }
 
 #endif // CL_POINT_CLOUD_HPP
