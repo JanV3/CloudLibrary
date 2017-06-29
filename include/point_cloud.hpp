@@ -262,6 +262,9 @@ namespace cl {
 
     // Basic point cloud alias
     using PointCloud = PointCloudBase<Point>;
+
+    // Point indices
+    using PointIndices = std::vector<int>
 }
 
 #endif // CL_POINT_CLOUD_HPP
