@@ -201,6 +201,15 @@ namespace cl {
         }
 
         /**
+	* Check if point cloud empty
+	* @return true if empty
+	*/
+        auto empty() const
+	{
+	   return points_.empty();
+	}
+
+        /**
         * returns point at specified position
         * @param index position of point in cloud
         * @return point
