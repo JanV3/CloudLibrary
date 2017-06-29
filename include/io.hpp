@@ -123,6 +123,37 @@ namespace cl {
 
             return;
         }
+
+		void saveToFile(std::string path, PointCloud& cloud)
+		{
+			std::ofstream f(path);
+			f << cloud.size() << '\n';
+			for (auto p = cloud.begin(); p != cloud.end(); ++p) {
+				f << p->x << " " << p->y << " " << p->z << '\n';
+			}
+		}
+
+		void loadFromFile(std::string path, PointCloud& cloud)
+		{
+			std::ifstream f(path);
+			size_t points;
+			f >> points;
+			std::string line;
+			while (std::getline(f, line)) {
+				std::istringstream iss(line);
+				double x, y, z;
+				iss >> x >> y >> z;
+				cloud.push_back({ x, y, z });
+			}
+		}
+
+		void saveToFileBinary(std::string path, PointCloud& cloud)
+		{
+			std::ofstream f(path, std::ios::binary);
+			auto size = cloud.size();
+			f.write(reinterpret_cast<char*>(&size), sizeof(size));
+			f.write(reinterpret_cast<const char*>(cloud.data()), sizeof(const char) * sizeof(double));
+		}
     } // namespace io
 } // namespace cl
 
