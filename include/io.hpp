@@ -141,7 +141,7 @@ namespace cl {
 			std::string line;
 			while (std::getline(f, line)) {
 				std::istringstream iss(line);
-				double x, y, z;
+				float x, y, z;
 				iss >> x >> y >> z;
 				cloud.push_back({ x, y, z });
 			}
