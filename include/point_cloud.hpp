@@ -165,12 +165,70 @@ namespace cl {
         */
         using Ptr = std::shared_ptr<PointCloudBase<T>>;
 
-		PointCloudBase<T>()
-		{}
+        /**
+        * Default constructor
+        */
+        PointCloudBase<T>()
+            : width_(0)
+            , height_(0)
+        {}
 
-		PointCloudBase<T>(std::string name)
+        /**
+        * Constructor with name and/or width and height of point cloud
+        */
+		PointCloudBase<T>(std::string name, size_t width = 0, size_t height = 0)
 			: name_(name)
-		{}
+			, width_(width)
+			, height_(height)
+		{
+		}
+
+        /**
+        * If cloud have non-zero width or height,
+        * it is considered as organized.
+        */
+		bool isOrganized() const
+		{
+			if (width_ != 0 || height_ != 0)
+				return true;
+			return false;
+		}
+
+        /**
+        * Set point cloud width.
+        * If width is non-zero, point cloud is organized.
+        */
+        void setWidth(size_t width)
+        {
+            width_ = width;
+        }
+
+        /**
+        * Set point cloud height.
+        * If height is non-zero, point cloud is organized.
+        */
+        void setHeight(size_t height)
+        {
+            height_ = height;
+        }
+
+        /**
+        * Returns width of point cloud.
+        * If width is non-zero, point cloud is considered as organized.
+        */
+		size_t getWidth() const
+		{
+			return width_;
+		}
+
+        /**
+        * Returns height of point cloud.
+        * If height is non-zero, point cloud is considered as organized.
+        */
+		size_t getHeight() const
+		{
+			return height_;
+		}
 
         /**
         * add point to point cloud
@@ -217,13 +275,13 @@ namespace cl {
 		}
 
         /**
-	* Check if point cloud empty
-	* @return true if empty
-	*/
+		* Check if point cloud empty
+		* @return true if empty
+		*/	
         auto empty() const
-	{
-	   return points_.empty();
-	}
+        {
+            return points_.empty();
+        }
 
         /**
         * returns point at specified position
@@ -244,11 +302,13 @@ namespace cl {
             return points_.data();
         }
 
+        /** Get name of point cloud. If name is not set, returns empty string */
 		auto getName() const
 		{
 			return name_;
 		}
 
+        /** Set point cloud name */
 		void setName(std::string name)
 		{
 			name_ = name;
@@ -282,6 +342,8 @@ namespace cl {
     private:
         Points points_;
 		std::string name_;
+		size_t width_;
+		size_t height_;
     };
 
     // Basic point alias
