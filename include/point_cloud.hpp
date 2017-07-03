@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 #include <cmath>
 
@@ -164,6 +165,13 @@ namespace cl {
         */
         using Ptr = std::shared_ptr<PointCloudBase<T>>;
 
+		PointCloudBase<T>()
+		{}
+
+		PointCloudBase<T>(std::string name)
+			: name_(name)
+		{}
+
         /**
         * add point to point cloud
         * @param point
@@ -236,6 +244,16 @@ namespace cl {
             return points_.data();
         }
 
+		auto getName() const
+		{
+			return name_;
+		}
+
+		void setName(std::string name)
+		{
+			name_ = name;
+		}
+
         /**
         * Add one point cloud to another.
         * @param cloud
@@ -263,6 +281,7 @@ namespace cl {
 
     private:
         Points points_;
+		std::string name_;
     };
 
     // Basic point alias
