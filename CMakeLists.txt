@@ -11,8 +11,10 @@ if(NOT OPENGL_FOUND)
 endif()
 include_directories(${OPENGL_INCLUDE_DIR})
 
+IF(WIN32)
 set(GLEW_LIBRARY c:/local/glew-2.0.0/lib/Release/x64/glew32.lib)
 set(GLEW_INCLUDE_DIR c:/local/glew-2.0.0/include)
+ENDIF()
 
 find_package(GLEW REQUIRED)
 if(NOT GLEW_FOUND)
@@ -22,7 +24,9 @@ endif()
 include_directories($(GLEW_INCLUDE_DIRS))
 
 
+IF(WIN32)
 set(glfw3_DIR "c:/Program Files/GLFW/lib/cmake/glfw3/")
+ENDIF()
 
 find_package(glfw3)
 if(NOT glfw3_FOUND)

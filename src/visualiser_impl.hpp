@@ -19,7 +19,7 @@
 
 namespace cl {
 
-    /// @brief Declaration of window resize hander used in Visualiser implementation
+    /// @brief Declaration of window resize handler used in Visualiser implementation
     ///
     /// @param w pointer to window
     /// @param width new width of window
@@ -123,7 +123,7 @@ namespace cl {
             const GLfloat SPEED = 10000.0f;
             const GLfloat SENSITIVTY = 0.15f;
 
-			CameraPolicy policy;
+            CameraPolicy policy;
 
         public:
             // Camera Attributes
@@ -150,7 +150,7 @@ namespace cl {
 
                 cameraVectors = policy.getInitialVectors();
 
-				policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
+                policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
 
             // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -189,7 +189,7 @@ namespace cl {
                 pitch += yoffset;
 
                 // Update Front, Right and Up Vectors using the updated Eular angles
-				policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
+                policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
         };
 
@@ -302,7 +302,7 @@ namespace cl {
 
             // calculate speed of movement
             camera_.movementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
-			camera_.position = (minPoint + maxPoint) / 2.0f;
+            camera_.position = (minPoint + maxPoint) / 2.0f;
         }
 
         /// @brief This function should be called when user wants to display uploaded point cloud in created window
@@ -373,25 +373,25 @@ namespace cl {
     private:
         void loadShaders()
         {
-            std::string v_str("#version 330 core"
-                              "layout (location = 0) in vec3 position;"
-                              "uniform mat4 mvp;"
-                              "void main()"
-                              "{"
-                              "    gl_PointSize = 3.0;"
-                              "    gl_Position = mvp * vec4(position, 1.0f);"
-                              "}");
+            std::string v_str("#version 330 core\n"
+                              "layout (location = 0) in vec3 position;\n"
+                              "uniform mat4 mvp;\n"
+                              "void main()\n"
+                              "{\n"
+                              "    gl_PointSize = 3.0;\n"
+                              "    gl_Position = mvp * vec4(position, 1.0f);\n"
+                              "}\n");
             GLuint vs = glCreateShader(GL_VERTEX_SHADER);
             char const *v_str_ptr = v_str.c_str();
             glShaderSource(vs, 1, &v_str_ptr, NULL);
             glCompileShader(vs);
 
-            std::string f_str("#version 330 core"
-                              "out vec4 color;"
-                              "void main()"
-                              "{"
-                              "    color = vec4(1.0f, 0.8f, 0.2f, 1.0f);"
-                              "}");
+            std::string f_str("#version 330 core\n"
+                              "out vec4 color;\n"
+                              "void main()\n"
+                              "{\n"
+                              "    color = vec4(1.0f, 0.8f, 0.2f, 1.0f);\n"
+                              "}\n");
             GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
             char const *f_str_ptr = f_str.c_str();
             glShaderSource(fs, 1, &f_str_ptr, NULL);
