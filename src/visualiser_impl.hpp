@@ -33,6 +33,15 @@ namespace cl {
     /// @param y position of pointer on y-axis
     void onMouseMove(GLFWwindow *w, double x, double y);
 
+    /// @brief Declaration of keypress handler used in Visualiser implementation
+    ///
+    /// @param w pointer to window
+    /// @param key key code
+    /// @param scancode system scan code
+    /// @param action pressed/released/repeat
+    /// @param mode modifiers
+    void onKeyPressed(GLFWwindow *w, int key, int scancode, int action, int mode);
+
     /// @brief Visualiser provides a way to visualise point cloud in 3D space
     class VisualiserImpl {
 
@@ -221,6 +230,8 @@ namespace cl {
         glm::vec3 maxPoint;
         glm::vec3 minPoint;
 
+        GLfloat pointSize = 1.0f;
+
         // last mouse positions
         double lastX = 0.0;
         double lastY = 0.0;
@@ -328,6 +339,14 @@ namespace cl {
                 // update view and projection matrix
                 view = camera_.getViewMatrix();
                 projection = glm::perspective(45.0f, (GLfloat)width_ / height_, 0.0f, 100000.0f);
+                /*projection = glm::ortho(
+                    0.0f,
+                    static_cast<float>(width_),
+                    static_cast<float>(height_),
+                    0.0f,
+                    0.0f,
+                    10000.0f
+                );*/
                 glm::mat4 mvp = projection * view * model;
 
                 // Draw objects
@@ -335,6 +354,9 @@ namespace cl {
                 glUseProgram(program_);
                 GLuint mvp_id = glGetUniformLocation(program_, "mvp");
                 glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
+
+                GLuint pointSize_id = glGetUniformLocation(program_, "pointSize");
+                glUniform1f(pointSize_id, pointSize);
                 for (auto &o : objects_) {
                     glBindVertexArray(o.second.vao);
                     glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(o.second.size));
@@ -370,15 +392,33 @@ namespace cl {
             self->lastY = y;
         }
 
+        friend void onKeyPressed(GLFWwindow *w, int key, int scancode, int action, int mode)
+        {
+            auto self = static_cast<VisualiserImpl *>(glfwGetWindowUserPointer(w));
+            if (action != GLFW_PRESS)
+                return;
+
+            if (key == GLFW_KEY_KP_ADD) {
+                self->pointSize += 1.0f;
+            }
+
+            if (key == GLFW_KEY_KP_SUBTRACT) {
+                self->pointSize -= 1.0f;
+                if (self->pointSize < 1.0f)
+                    self->pointSize = 1.0f;
+            }
+        }
+
     private:
         void loadShaders()
         {
             std::string v_str("#version 330 core\n"
                               "layout (location = 0) in vec3 position;\n"
                               "uniform mat4 mvp;\n"
+                              "uniform float pointSize;\n"
                               "void main()\n"
                               "{\n"
-                              "    gl_PointSize = 3.0;\n"
+                              "    gl_PointSize = pointSize;\n"
                               "    gl_Position = mvp * vec4(position, 1.0f);\n"
                               "}\n");
             GLuint vs = glCreateShader(GL_VERTEX_SHADER);
@@ -450,6 +490,9 @@ namespace cl {
 
             // set mouse move callback
             glfwSetCursorPosCallback(window_, onMouseMove);
+
+            // set keypress callback
+            glfwSetKeyCallback(window_, onKeyPressed);
 
             lastX = 0.0;
             lastY = 0.0;
