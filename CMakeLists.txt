@@ -11,8 +11,10 @@ if(NOT OPENGL_FOUND)
 endif()
 include_directories(${OPENGL_INCLUDE_DIR})
 
+IF(WIN32)
 set(GLEW_LIBRARY c:/local/glew-2.0.0/lib/Release/x64/glew32.lib)
 set(GLEW_INCLUDE_DIR c:/local/glew-2.0.0/include)
+ENDIF()
 
 find_package(GLEW REQUIRED)
 if(NOT GLEW_FOUND)
@@ -22,7 +24,9 @@ endif()
 include_directories($(GLEW_INCLUDE_DIRS))
 
 
+IF(WIN32)
 set(glfw3_DIR "c:/Program Files/GLFW/lib/cmake/glfw3/")
+ENDIF()
 
 find_package(glfw3)
 if(NOT glfw3_FOUND)
@@ -67,7 +71,7 @@ target_link_libraries(CloudLibraryShared glfw ${GLFW_STATIC_LIBRARIES} ${GLEW_LI
 
 set(VIS_TEST_FILES tests/visualiser_test.cpp)
 add_executable(VisualiserTest ${VIS_TEST_FILES})
-target_link_libraries(VisualiserTest CloudLibrary)
+target_link_libraries(VisualiserTest CloudLibraryShared)
 
 set(POINT_CLOUD_UNIT_TEST_FILES tests/point_cloud_unit_test.cpp)
 add_executable(PointCloudUnitTest ${POINT_CLOUD_UNIT_TEST_FILES})
