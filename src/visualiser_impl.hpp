@@ -11,11 +11,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 #include "point_cloud.hpp"
+#include "algorithms.hpp"
 
 namespace cl {
 
@@ -33,6 +36,13 @@ namespace cl {
     /// @param y position of pointer on y-axis
     void onMouseMove(GLFWwindow *w, double x, double y);
 
+    /// @brief Declaration of mouse scroll handler used in Visualiser implementation
+    ///
+    /// @param w pointer to window
+    /// @param x position of pointer on x-axis
+    /// @param y position of pointer on y-axis
+    void onMouseScroll(GLFWwindow *w, double x, double y);
+
     /// @brief Declaration of keypress handler used in Visualiser implementation
     ///
     /// @param w pointer to window
@@ -44,174 +54,7 @@ namespace cl {
 
     /// @brief Visualiser provides a way to visualise point cloud in 3D space
     class VisualiserImpl {
-
-        /// @brief Defines several possible options for camera movement. Used as abstraction to stay away from
-        /// window-system specific input methods
-        enum class CameraMovement { Forward, Backward, Left, Right, Up, Down };
-
-        /// @brief Parameters of camera
-        struct CameraVectors {
-            glm::vec3 front;
-            glm::vec3 right;
-            glm::vec3 up;
-        };
-
-        /// @brief First person camera policy
-        class CameraFPS {
-        public:
-            /// @brief Create initial camera paramters for FPS camera
-            ///
-            /// @return camera parameters
-            CameraVectors getInitialVectors()
-            {
-                CameraVectors cv;
-                cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
-                cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
-                return cv;
-            }
-
-            /// @brief Update camera vectors by given input parameters
-            ///
-            /// @param yaw angle of y-axis
-            /// @param pitch angle of x-axis
-            /// @param worldUp up vector of world
-            /// @param cv output camera vectors
-            void updateVectors(GLfloat &yaw, GLfloat &pitch, glm::vec3 &worldUp, CameraVectors &cv)
-            {
-                if (pitch > 89.0f)
-                    pitch = 89.0f;
-                if (pitch < -89.0f)
-                    pitch = -89.0f;
-
-                // Calculate the new Front vector
-                glm::vec3 front;
-                front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-                front.y = sin(glm::radians(pitch));
-                front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-                cv.front = glm::normalize(front);
-                // Also re-calculate the Right and Up vector
-                cv.right = glm::normalize(glm::cross(cv.front, worldUp));
-                cv.up = glm::normalize(glm::cross(cv.right, cv.front));
-            }
-        };
-
-        class CameraFlight {
-        public:
-            CameraVectors getInitialVectors()
-            {
-                CameraVectors cv;
-                cv.front = glm::vec3(0.0f, 0.0f, -1.0f);
-                cv.up = glm::vec3(0.0f, 1.0f, 0.0f);
-                return cv;
-            }
-
-            void updateVectors(GLfloat &yaw, GLfloat &pitch, glm::vec3 &worldUp, CameraVectors &cv)
-            {
-                GLfloat roll = 0.0f;
-
-                // Fuck quaternions
-                glm::fquat pitchQuat(cos(glm::radians(pitch / 2.0f)),
-                                     cv.right * (float)sin(glm::radians(pitch / 2.0f)));
-                glm::fquat yawQuat(cos(glm::radians(yaw / 2.0f)), cv.up * (float)sin(glm::radians(yaw / 2.0f)));
-                glm::fquat rollQuat(cos(glm::radians(roll / 2.0f)), cv.front * (float)sin(glm::radians(roll / 2.0f)));
-
-                auto rotation = yawQuat * pitchQuat * rollQuat;
-
-                cv.front = rotation * cv.front * glm::conjugate(rotation);
-                cv.up = rotation * cv.up * glm::conjugate(rotation);
-                cv.right = glm::cross(cv.front, cv.up);
-            }
-        };
-
-        // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and
-        // Matrices for use in OpenGL
-        template <typename CameraPolicy>
-        class Camera {
-            // Default camera values
-            const GLfloat SPEED = 10000.0f;
-            const GLfloat SENSITIVTY = 0.15f;
-
-            CameraPolicy policy;
-
-        public:
-            // Camera Attributes
-            glm::vec3 position;
-            glm::vec3 worldUp;
-            CameraVectors cameraVectors;
-
-            // Eular Angles
-            GLfloat yaw;
-            GLfloat pitch;
-
-            // Camera options
-            GLfloat movementSpeed;
-            GLfloat mouseSensitivity;
-
-            // Constructor with vectors
-            Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), GLfloat yaw = -90.0f, GLfloat pitch = 0.0f)
-                : movementSpeed(SPEED), mouseSensitivity(SENSITIVTY)
-            {
-                this->position = position;
-                this->worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
-                this->yaw = yaw;
-                this->pitch = pitch;
-
-                cameraVectors = policy.getInitialVectors();
-
-                policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
-            }
-
-            // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
-            glm::mat4 getViewMatrix()
-            {
-                return glm::lookAt(position, position + this->cameraVectors.front, this->cameraVectors.up);
-            }
-
-            // Processes input received from any keyboard-like input system. Accepts input parameter in the form of
-            // camera defined ENUM (to abstract it from windowing systems)
-            void processKeyboard(CameraMovement direction, GLfloat deltaTime)
-            {
-                GLfloat velocity = this->movementSpeed * deltaTime;
-                if (direction == CameraMovement::Forward)
-                    position += cameraVectors.front * velocity;
-                if (direction == CameraMovement::Backward)
-                    position -= cameraVectors.front * velocity;
-                if (direction == CameraMovement::Left)
-                    position -= cameraVectors.right * velocity;
-                if (direction == CameraMovement::Right)
-                    position += cameraVectors.right * velocity;
-                if (direction == CameraMovement::Up)
-                    position += cameraVectors.up * velocity;
-                if (direction == CameraMovement::Down)
-                    position -= cameraVectors.up * velocity;
-            }
-
-            // Processes input received from a mouse input system. Expects the offset value in both the x and y
-            // direction.
-            void processMouseMovement(GLfloat xoffset, GLfloat yoffset, GLboolean constrainPitch = false)
-            {
-                xoffset *= mouseSensitivity;
-                yoffset *= mouseSensitivity;
-
-                yaw += xoffset;
-                pitch += yoffset;
-
-                // Update Front, Right and Up Vectors using the updated Eular angles
-                policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
-            }
-        };
-
-#pragma pack(push, 1)
-        struct Vertex {
-            Vertex(GLfloat x, GLfloat y, GLfloat z) : x_(x), y_(y), z_(z){};
-            GLfloat x_;
-            GLfloat y_;
-            GLfloat z_;
-        };
-        using Vertices = std::vector<Vertex>;
-#pragma pack(pop)
-
+        // OpenGL object
         struct Object {
             GLuint vbo;
             GLuint vao;
@@ -225,19 +68,26 @@ namespace cl {
         GLFWwindow *window_;
         GLuint program_;
         Objects objects_;
-        Camera<CameraFPS> camera_;
 
-        glm::vec3 maxPoint;
-        glm::vec3 minPoint;
+        // model parameters
+        glm::mat4 modelRotateX;
+        glm::mat4 modelRotateY;
+        glm::mat4 modelRotateZ;
+        glm::mat4 modelTranslate;
+        glm::mat4 modelScale;
 
-        GLfloat pointSize = 1.0f;
+        // size of rendered points
+        GLfloat pointSize;
 
         // last mouse positions
-        double lastX = 0.0;
-        double lastY = 0.0;
+        double lastX;
+        double lastY;
 
     public:
-        VisualiserImpl() : windowName_("CL Visualiser"), width_(800), height_(600)
+        VisualiserImpl()
+            : windowName_("CL Visualiser")
+            , width_(800)
+            , height_(600)
         {
             init();
         };
@@ -273,37 +123,12 @@ namespace cl {
             Object object;
             object.size = cloud->size();
 
-            // copy vertices to local buffer
-            Vertices vertices;
-            vertices.reserve(cloud->size());
-            for (auto p = cloud->begin(); p != cloud->end(); ++p) {
-                auto x = static_cast<GLfloat>(p->x);
-                auto y = static_cast<GLfloat>(p->y);
-                auto z = static_cast<GLfloat>(p->z);
-
-                if (x > maxPoint.x)
-                    maxPoint.x = x;
-                if (y > maxPoint.y)
-                    maxPoint.y = y;
-                if (z > maxPoint.z)
-                    maxPoint.z = z;
-
-                if (x < minPoint.x)
-                    minPoint.x = x;
-                if (y < minPoint.y)
-                    minPoint.y = y;
-                if (z < minPoint.z)
-                    minPoint.z = z;
-
-                vertices.push_back({x, y, z});
-            }
-
             glGenVertexArrays(1, &object.vao);
             glBindVertexArray(object.vao);
             glGenBuffers(1, &object.vbo);
             glBindBuffer(GL_ARRAY_BUFFER, object.vbo);
-            glBufferData(GL_ARRAY_BUFFER, vertices.size() * 3 * sizeof(GLfloat),
-                         reinterpret_cast<const void *>(vertices.data()), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, cloud->size() * 3 * sizeof(GLfloat),
+                         reinterpret_cast<const void *>(cloud->data()), GL_STATIC_DRAW);
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
             glEnableVertexAttribArray(0);
             glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -311,19 +136,17 @@ namespace cl {
 
             objects_[cloudName] = object;
 
-            // calculate speed of movement
-            camera_.movementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
-            camera_.position = (minPoint + maxPoint) / 2.0f;
+            // center object on screen
+            auto centroid = cl::centroid(*cloud);
+            glm::vec2 centroid2D(centroid.x, centroid.y);
+            glm::vec2 screenCenter(width_/2.0f, height_/2.0f);
+            auto trans = screenCenter - centroid2D;
+            modelTranslate = glm::translate(modelTranslate, glm::vec3(trans.x, trans.y, 0));
         }
 
         /// @brief This function should be called when user wants to display uploaded point cloud in created window
         void spin()
         {
-            glm::mat4 model(1.0f);
-            glm::mat4 view(1.0f);
-            glm::mat4 projection(1.0f);
-            glm::mat4 mvp(1.0f);
-
             double lastFrame = 0.0;
             while (!glfwWindowShouldClose(window_)) {
 
@@ -336,32 +159,65 @@ namespace cl {
                 if (!processKeys(static_cast<GLfloat>(timeDiff)))
                     break;
 
-                // update view and projection matrix
-                view = camera_.getViewMatrix();
-                projection = glm::perspective(45.0f, (GLfloat)width_ / height_, 0.0f, 100000.0f);
-                /*projection = glm::ortho(
+                // Clear screen
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                // Draw QUAD with color gradient
+                glMatrixMode(GL_MODELVIEW);
+                glPushMatrix();
+                glLoadIdentity();
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadIdentity();
+                glBegin(GL_QUADS);
+                glColor4f(0.3, 0.3, 0.3, 1.0);
+                glVertex3i(-1, -1, -1);
+                glVertex3i(1, -1, -1);
+                glColor4f(0.1, 0.1, 0.1, 1.0);
+                glVertex3i(1, 1, -1);
+                glVertex3i(-1, 1, -1);
+                glEnd();
+                glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                glPopMatrix();
+
+                // use main shader program
+                glUseProgram(program_);
+
+                // Create model matrix
+                glm::mat4 model = modelTranslate * modelRotateZ * modelRotateY * modelRotateZ * modelScale;
+
+                // Get camera matrix
+                glm::mat4 view(1.0f);
+
+                // Create projection matrix
+                //glm::mat4 projection = glm::perspective(45.0f, (GLfloat)width_ / height_, 0.0f, 100000.0f);
+                glm::mat4 projection = glm::ortho(
                     0.0f,
                     static_cast<float>(width_),
                     static_cast<float>(height_),
                     0.0f,
-                    0.0f,
-                    10000.0f
-                );*/
-                glm::mat4 mvp = projection * view * model;
+                    -1000.0f,
+                    1000.0f
+                );
 
-                // Draw objects
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                glUseProgram(program_);
+                // Create and apply MVP matrix
+                glm::mat4 mvp = projection * view * model;
                 GLuint mvp_id = glGetUniformLocation(program_, "mvp");
                 glUniformMatrix4fv(mvp_id, 1, GL_FALSE, &mvp[0][0]);
 
+                // Set point size
                 GLuint pointSize_id = glGetUniformLocation(program_, "pointSize");
                 glUniform1f(pointSize_id, pointSize);
+
+                // draw all objects to screen
                 for (auto &o : objects_) {
                     glBindVertexArray(o.second.vao);
                     glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(o.second.size));
                     glBindVertexArray(0);
                 }
+
+                // unset program
                 glUseProgram(0);
 
                 // Swap buffers
@@ -385,9 +241,14 @@ namespace cl {
             auto self = static_cast<VisualiserImpl *>(glfwGetWindowUserPointer(w));
 
             if (self->lastY != 0.0 && self->lastX != 0.0) {
-                self->camera_.processMouseMovement(static_cast<GLfloat>(x - self->lastX),
-                                                   static_cast<GLfloat>(self->lastY - y));
+                float offsetX = x - self->lastX;
+                float offsetY = y - self->lastY;
+
+                int rightState = glfwGetMouseButton(w, GLFW_MOUSE_BUTTON_RIGHT);
+                if (rightState == GLFW_PRESS)
+                    self->modelTranslate = glm::translate(self->modelTranslate, glm::vec3(offsetX, offsetY, 0.0f));
             }
+
             self->lastX = x;
             self->lastY = y;
         }
@@ -407,6 +268,15 @@ namespace cl {
                 if (self->pointSize < 1.0f)
                     self->pointSize = 1.0f;
             }
+        }
+
+        friend void onMouseScroll(GLFWwindow *w, double x, double y)
+        {
+            auto self = static_cast<VisualiserImpl *>(glfwGetWindowUserPointer(w));
+            if (y < 0)
+                self->modelScale = glm::scale(self->modelScale, glm::vec3(0.9f));
+            else
+                self->modelScale = glm::scale(self->modelScale, glm::vec3(1.1f));
         }
 
     private:
@@ -450,6 +320,15 @@ namespace cl {
 
         void init()
         {
+            modelScale = glm::mat4(1.0f);
+            modelTranslate = glm::mat4(1.0f);
+            modelRotateX = glm::mat4(1.0f);
+            modelRotateY = glm::mat4(1.0f);
+            modelRotateZ = glm::mat4(1.0f);
+            lastX = 0.0;
+            lastY = 0.0;
+            pointSize = 1.0f;
+
             // initialize the GLFW library
             if (!glfwInit())
                 throw std::runtime_error("Cannot initialise GLFW.");
@@ -470,7 +349,7 @@ namespace cl {
             glfwSetWindowUserPointer(window_, this);
 
             // set mouse to disabled state
-            glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            // glfwSetInputMode(window_, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
             // Initialize GLEW
             glewExperimental = GL_TRUE;
@@ -494,42 +373,12 @@ namespace cl {
             // set keypress callback
             glfwSetKeyCallback(window_, onKeyPressed);
 
-            lastX = 0.0;
-            lastY = 0.0;
-            maxPoint.x = std::numeric_limits<GLfloat>::min();
-            maxPoint.y = std::numeric_limits<GLfloat>::min();
-            maxPoint.z = std::numeric_limits<GLfloat>::min();
-            minPoint.x = std::numeric_limits<GLfloat>::max();
-            minPoint.y = std::numeric_limits<GLfloat>::max();
-            minPoint.z = std::numeric_limits<GLfloat>::max();
+            // set scroll callback
+            glfwSetScrollCallback(window_, onMouseScroll);
         }
 
         bool processKeys(GLfloat diffTime)
         {
-            if (glfwGetKey(window_, GLFW_KEY_W)) {
-                camera_.processKeyboard(CameraMovement::Forward, diffTime);
-            }
-
-            if (glfwGetKey(window_, GLFW_KEY_S)) {
-                camera_.processKeyboard(CameraMovement::Backward, diffTime);
-            }
-
-            if (glfwGetKey(window_, GLFW_KEY_A)) {
-                camera_.processKeyboard(CameraMovement::Left, diffTime);
-            }
-
-            if (glfwGetKey(window_, GLFW_KEY_D)) {
-                camera_.processKeyboard(CameraMovement::Right, diffTime);
-            }
-
-            if (glfwGetKey(window_, GLFW_KEY_E)) {
-                camera_.processKeyboard(CameraMovement::Up, diffTime);
-            }
-
-            if (glfwGetKey(window_, GLFW_KEY_Q)) {
-                camera_.processKeyboard(CameraMovement::Down, diffTime);
-            }
-
             if (glfwGetKey(window_, GLFW_KEY_ESCAPE)) {
                 return false;
             }
