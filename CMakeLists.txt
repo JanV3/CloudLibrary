@@ -71,7 +71,7 @@ target_link_libraries(CloudLibraryShared glfw ${GLFW_STATIC_LIBRARIES} ${GLEW_LI
 
 set(VIS_TEST_FILES tests/visualiser_test.cpp)
 add_executable(VisualiserTest ${VIS_TEST_FILES})
-target_link_libraries(VisualiserTest CloudLibraryShared)
+target_link_libraries(VisualiserTest CloudLibrary)
 
 set(POINT_CLOUD_UNIT_TEST_FILES tests/point_cloud_unit_test.cpp)
 add_executable(PointCloudUnitTest ${POINT_CLOUD_UNIT_TEST_FILES})
