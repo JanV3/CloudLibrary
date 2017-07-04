@@ -49,7 +49,7 @@ namespace cl {
 
         /// @brief First person camera policy
         class CameraFPS {
-        protected:
+        public:
             /// @brief Create initial camera paramters for FPS camera
             ///
             /// @return camera parameters
@@ -88,7 +88,7 @@ namespace cl {
         };
 
         class CameraFlight {
-        protected:
+        public:
             CameraVectors getInitialVectors()
             {
                 CameraVectors cv;
@@ -118,14 +118,12 @@ namespace cl {
         // An abstract camera class that processes input and calculates the corresponding Eular Angles, Vectors and
         // Matrices for use in OpenGL
         template <typename CameraPolicy>
-        class Camera : public CameraPolicy {
-
-            using CameraPolicy::getInitialVectors;
-            using CameraPolicy::updateVectors;
-
+        class Camera {
             // Default camera values
             const GLfloat SPEED = 10000.0f;
             const GLfloat SENSITIVTY = 0.15f;
+
+			CameraPolicy policy;
 
         public:
             // Camera Attributes
@@ -150,9 +148,9 @@ namespace cl {
                 this->yaw = yaw;
                 this->pitch = pitch;
 
-                cameraVectors = getInitialVectors();
+                cameraVectors = policy.getInitialVectors();
 
-                updateVectors(yaw, pitch, worldUp, cameraVectors);
+				policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
 
             // Returns the view matrix calculated using Eular Angles and the LookAt Matrix
@@ -191,7 +189,7 @@ namespace cl {
                 pitch += yoffset;
 
                 // Update Front, Right and Up Vectors using the updated Eular angles
-                updateVectors(yaw, pitch, worldUp, cameraVectors);
+				policy.updateVectors(yaw, pitch, worldUp, cameraVectors);
             }
         };
 
@@ -304,6 +302,7 @@ namespace cl {
 
             // calculate speed of movement
             camera_.movementSpeed = glm::distance(minPoint, maxPoint) / 3.0f;
+			camera_.position = (minPoint + maxPoint) / 2.0f;
         }
 
         /// @brief This function should be called when user wants to display uploaded point cloud in created window

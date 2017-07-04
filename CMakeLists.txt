@@ -11,12 +11,18 @@ if(NOT OPENGL_FOUND)
 endif()
 include_directories(${OPENGL_INCLUDE_DIR})
 
+set(GLEW_LIBRARY c:/local/glew-2.0.0/lib/Release/x64/glew32.lib)
+set(GLEW_INCLUDE_DIR c:/local/glew-2.0.0/include)
+
 find_package(GLEW REQUIRED)
 if(NOT GLEW_FOUND)
     MESSAGE("Could not find GLEW.")
     RETURN()
 endif()
 include_directories($(GLEW_INCLUDE_DIRS))
+
+
+set(glfw3_DIR "c:/Program Files/GLFW/lib/cmake/glfw3/")
 
 find_package(glfw3)
 if(NOT glfw3_FOUND)
@@ -53,8 +59,11 @@ set(CL_FILES
 
 
 
-add_library(CloudLibrary ${CL_FILES})
-target_link_libraries(CloudLibrary glfw ${GLFW_LIBRARIES} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY} ${Boost_LIBRARIES})
+add_library(CloudLibrary STATIC ${CL_FILES})
+target_link_libraries(CloudLibrary glfw ${GLFW_STATIC_LIBRARIES} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY} ${Boost_LIBRARIES})
+
+add_library(CloudLibraryShared SHARED ${CL_FILES})
+target_link_libraries(CloudLibraryShared glfw ${GLFW_STATIC_LIBRARIES} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY} ${Boost_LIBRARIES})
 
 set(VIS_TEST_FILES tests/visualiser_test.cpp)
 add_executable(VisualiserTest ${VIS_TEST_FILES})

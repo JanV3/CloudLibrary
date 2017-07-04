@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <vector>
 #include <cmath>
 
@@ -165,6 +166,71 @@ namespace cl {
         using Ptr = std::shared_ptr<PointCloudBase<T>>;
 
         /**
+        * Default constructor
+        */
+        PointCloudBase<T>()
+            : width_(0)
+            , height_(0)
+        {}
+
+        /**
+        * Constructor with name and/or width and height of point cloud
+        */
+		PointCloudBase<T>(std::string name, size_t width = 0, size_t height = 0)
+			: name_(name)
+			, width_(width)
+			, height_(height)
+		{
+		}
+
+        /**
+        * If cloud have non-zero width or height,
+        * it is considered as organized.
+        */
+		bool isOrganized() const
+		{
+			if (width_ != 0 || height_ != 0)
+				return true;
+			return false;
+		}
+
+        /**
+        * Set point cloud width.
+        * If width is non-zero, point cloud is organized.
+        */
+        void setWidth(size_t width)
+        {
+            width_ = width;
+        }
+
+        /**
+        * Set point cloud height.
+        * If height is non-zero, point cloud is organized.
+        */
+        void setHeight(size_t height)
+        {
+            height_ = height;
+        }
+
+        /**
+        * Returns width of point cloud.
+        * If width is non-zero, point cloud is considered as organized.
+        */
+		size_t getWidth() const
+		{
+			return width_;
+		}
+
+        /**
+        * Returns height of point cloud.
+        * If height is non-zero, point cloud is considered as organized.
+        */
+		size_t getHeight() const
+		{
+			return height_;
+		}
+
+        /**
         * add point to point cloud
         * @param point
         */
@@ -200,12 +266,29 @@ namespace cl {
             return points_.size();
         }
 
+		/**
+		* Resize point cloud to specific size
+		*/
+		void resize(size_t size)
+		{
+			points_.resize(size);
+		}
+
+        /**
+		* Check if point cloud empty
+		* @return true if empty
+		*/	
+        auto empty() const
+        {
+            return points_.empty();
+        }
+
         /**
         * returns point at specified position
         * @param index position of point in cloud
         * @return point
         */
-        auto const &at(size_t index) const
+        auto &at(size_t index)
         {
             return points_.at(index);
         }
@@ -214,10 +297,22 @@ namespace cl {
         * Get pointer to data of underlaying container
         * @return
         */
-        auto const data() const
+        auto data()
         {
             return points_.data();
         }
+
+        /** Get name of point cloud. If name is not set, returns empty string */
+		auto getName() const
+		{
+			return name_;
+		}
+
+        /** Set point cloud name */
+		void setName(std::string name)
+		{
+			name_ = name;
+		}
 
         /**
         * Add one point cloud to another.
@@ -246,13 +341,19 @@ namespace cl {
 
     private:
         Points points_;
+		std::string name_;
+		size_t width_;
+		size_t height_;
     };
 
     // Basic point alias
-    using Point = PointXYZ<double>;
+    using Point = PointXYZ<float>;
 
     // Basic point cloud alias
     using PointCloud = PointCloudBase<Point>;
+
+    // Point indices
+	using PointIndices = std::vector<int>;
 }
 
 #endif // CL_POINT_CLOUD_HPP
