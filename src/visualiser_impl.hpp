@@ -185,10 +185,10 @@ namespace cl {
                 glUseProgram(program_);
 
                 // Create model matrix
-                glm::mat4 model = modelTranslate * modelRotateZ * modelRotateY * modelRotateZ * modelScale;
+                glm::mat4 model(1.0f);
 
                 // Get camera matrix
-                glm::mat4 view(1.0f);
+                glm::mat4 view = modelTranslate * modelRotateZ * modelRotateY * modelRotateZ * modelScale;
 
                 // Create projection matrix
                 //glm::mat4 projection = glm::perspective(45.0f, (GLfloat)width_ / height_, 0.0f, 100000.0f);
